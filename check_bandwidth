@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # -----------------------------------------------------------------------------
-# check_bandwidth 1.0.0
+# check_bandwidth 1.0.1
 #    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
 #    ~ Copyright 2007, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 #    ~ based on the check_traffic plugin by Adrian Weiczorek
@@ -188,7 +188,7 @@ if ($_options{'on-the-fly'} || !(-e $cache)) {
     #  (i.e. the counter hasn't cycled based on the speed of the interface)
     #  TODO: this may be too short - look into coding comparison between
     #        this and a minimum period the data should be valid for (10m)
-    ((time - $count{'ifTimeStamp'}) < ($_cycle/($recount{'ifSpeed'}/8))) &&
+    ((time - $count{'ifTimeStamp'}) < ($_cycle/($count{'ifSpeed'}/8))) &&
     # make sure we have values for tx and rx
     (($count{'ifReceived'} > 0) && ($count{'ifTransmitted'} > 0))
   ) {
@@ -456,12 +456,13 @@ sub usage {
   my $full = (shift == 1 ? 1 : 0);
 
   # output about and usage (depending on $full above)
-  print "check_bandwidth v1.0.0\n Copyright 2007 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
+  print "check_bandwidth v1.0.1\n Copyright 2007 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
     "Poll (via SNMP) a network port and calculate bandwidth usage\n\n"
     if $full;
-  print "Usage: check_bandwidth --hostname hostname --interface name [--community name]\n".
-    "        [--timeout seconds] [--pause seconds] [--warning value]\n".
-    "        [--critical value] [--check-up] [--on-the-fly] [--bytes] [--use-mega]\n";
+  print "Usage: check_bandwidth --hostname hostname --interface name\n".
+    "         [--community name] [--timeout seconds] [--pause seconds]\n".
+    "         [--override bits/sec] [--warning value] [--critical value]\n".
+    "         [--check-up] [--on-the-fly] [--bytes] [--use-mega]\n";
   print "       see --help for further information\n"
     unless $full;
   print "\nOptions:\n".
@@ -469,19 +470,19 @@ sub usage {
     "    Display this help message\n".
     " -H, --host STRING\n".
     "    IP address or hosting of (remote) device to query\n".
+    " -i, --interface STRING\n".
+    "    Name or number of the interface to be queried\n".
     " -C, --community STRING            (default ".$_options{'community'}.")\n".
     "    SNMP community name to use for polling\n".
     " -t, --timeout INTEGER             (default ".$_options{'timeout'}."s)\n".
     "    Set the timeout value for communications with host via SNMP\n".
-    " -i, --interface STRING\n".
-    "    Name or number of the interface to be queried\n".
+    " -p, --pause INTEGER               (default ".$_options{'timeout'}."s)\n".
+    "    Set the length of the pause when calculating results on-the-fly\n".
+    "    (or between first checks when no cache value exists)\n".
     " -o, --override INTEGER            (default ".($_options{'override'}?$_options{'override'}:'Off').")\n".
     "    Override the maximum throughput available on selected port\n".
     " -f, --on-the-fly                  (default ".($_options{'on-the-fly'}?'On':'Off').")\n".
     "    Perform all calculation of bandwidth on-the-fly and don't use store\n".
-    " -p, --pause INTEGER               (default ".$_options{'timeout'}."s)\n".
-    "    Set the length of the pause when calculating results on-the-fly\n".
-    "    (or between first checks when no cache value exists)\n".
     " -u, --check-up                    (default ".($_options{'check-up'}?'On':'Off').")\n".
     "    Set the timeout value for communications with host via SNMP\n".
     " -w, --warning INTEGER[,INTEGER]   (default ".$_options{'warning'}.")\n".

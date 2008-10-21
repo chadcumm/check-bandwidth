@@ -93,6 +93,16 @@ check_bandwidth 1.0.0
   successfully on my system, if you do some accross any unknown bugs, please
   feel free to drop me an e-mail on jonathan (at) jabwebsolutions.co.uk.
 
+5. Changelog
+
+  1.0.0 (23.04.2007)
+   - Inital Release
+
+  1.0.1 (19.05.2007)
+   - Corrected error in checking of cached data where a variable was used that
+     had not yet been created (referenced $recount not $count).
+   - Made changes to --help message
+
 --
 Jonathan Wright (Technical Director)
 JAB Web Solutions Limited
