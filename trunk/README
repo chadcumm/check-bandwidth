@@ -1,6 +1,6 @@
-check_bandwidth 1.0.2
+check_bandwidth 1.0.4
    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
-   ~ Copyright 2007, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
+   ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 
 -- ----------------------------------------------------------------------------
 
@@ -92,6 +92,9 @@ check_bandwidth 1.0.2
       then process later (possible issue with devices not returning correct
       interface speed value).
 
+    - Improve checking of interface numbering as checking against ifNumber no
+      longer works correctly (corrected in 1.0.4).
+
 4. Notes
 
   This is the first release of this plugin, and while I have tested it
@@ -115,6 +118,10 @@ check_bandwidth 1.0.2
    - Corrected another error in checking of cached data where ifSpeed could be
      0 and the program would still attempt division by it, terminating the
      program.
+
+  1.0.4 (26.01.2008)
+   - Removed check against ifNumber of interfaces as shows number of entries
+     and interfaces may not be numbered in order.
 
 --
 Jonathan Wright (Technical Director)
