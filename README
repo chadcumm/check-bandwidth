@@ -130,6 +130,12 @@ check_bandwidth
      (is available, and should work, in the 2.x series)
    - Improved checking for the --interface option
 
+  1.1.1 (28.01.2008)
+   - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined
+     originally, so was set to 'b' as a default. However, this outputed 'bbps'
+     instead of 'bps', so it's now been changed to a blank value and should work
+     as intended now!
+    
 --
 Jonathan Wright (Technical Director)
 JAB Web Solutions Limited

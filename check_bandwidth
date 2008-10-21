@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 # -----------------------------------------------------------------------------
-# check_bandwidth 1.1.0
+# check_bandwidth 1.1.1
 #    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
 #    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 #    ~ based on the check_traffic plugin by Adrian Weiczorek
@@ -376,8 +376,9 @@ sub adjust {
   # get the value we're going to report (and convert it into bytes if
   #  requested by the --bytes command-line argument)
   $value = ($_options{'use-bytes'} ? (shift)/8 : shift);
-  # set $ext to the default of 'bytes' (i.e. 'b')
-  $ext = 'b';
+  # set $ext a blank value (setting to default of 'b' was incorrect as it then
+  #  produced output saying 'bbps' instead of just 'bps'
+  $ext = '';
 
   # if the --use-mega command-line option has been supplied, force all
   #  conversion to multipuls of megabyte or megabit.
@@ -442,7 +443,7 @@ sub usage {
   my $full = (shift == 1 ? 1 : 0);
 
   # output about and usage (depending on $full above)
-  print "check_bandwidth v1.1.0\n Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
+  print "check_bandwidth v1.1.1\n Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
     "Poll (via SNMP) a network port and calculate bandwidth usage\n\n"
     if $full;
   print "Usage: check_bandwidth --hostname hostname --interface name\n".
