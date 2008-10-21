@@ -136,6 +136,9 @@ check_bandwidth
      instead of 'bps', so it's now been changed to a blank value and should work
      as intended now!
     
+  1.1.2 (26.03.2008)
+    - Fixed bug in PnP settings where the values were the wrong way round.
+
 --
 Jonathan Wright (Technical Director)
 JAB Web Solutions Limited
