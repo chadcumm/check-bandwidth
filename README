@@ -1,4 +1,4 @@
-check_bandwidth3
+check_bandwidth
    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 
@@ -104,7 +104,23 @@ want to monitor their overall usage.
 
 4. Known Bugs & TODOs
 
-  Not much at the moment - I've re-written it (again!) to handle any previous issues.
+  - Look into seeing if snmpv3 doesn't use communities, in which case may need to further adjust the
+    regular expression for the --interface syntax checking so that v3 entries cannot enter a
+    community statement. (However, at the moment, if a community is given for a v3:// entry, it's
+    ignored by the script and not passed to the SNMP agent.)
+  - POD encoding of comments and manuals into the file?
+  - Look into more detailed storage of per-port data and then add additional ports to PnP infomation
+    return, allowing graphing on not only the total in/out, but also of each individual port as
+    well.
+  - More details manual on different configuration types.
+  - Source out the calculation code for tx/rx on the count/recount to a dedicated function.
+  - Source out code for the TX/RX check for 32- or 64-bit counter result.
+  - __convert_limit multiplication based on position in array (converted from string?)?
+  - Split out connection information for v1/v2 or v3 into common array and add differences?
+  - Add option to trigger a warning (or skip?) when the SNMP agent doesn't respond (rather than a
+    CRITICAL message) - may be worth while removing some of the code, or updating it with a command
+    like --down-warning and checking if only one device is being triggered - should follow with the
+    checks for multiple ports and whether or not we're failing one or more more ports.
 
 5. Notes
 
@@ -156,9 +172,6 @@ want to monitor their overall usage.
    - Removed support for --check-up in this version as it currently doesn't work (is available, and
      should work, in the 2.x series)
    - Improved checking for the --interface option
-   - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined originally, so was
-     set to 'b' as a default. However, this outputed 'bbps' instead of 'bps', so it's now been
-     changed to a blank value and should work as intended now!
 
   1.1.1 (28.01.2008)
    - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined originally, so was
@@ -183,18 +196,17 @@ want to monitor their overall usage.
    - Fixed error in function naming after change to new system.
     
   3.0.0rc1 (11.10.2008)
-   - Another rebuild, returing the code more to the 1.x.x style, making no use of the
+   - Another rebuild, resturcturing the code more to the 1.x.x style, making no use of the
      Net::SNMP::Interfaces libraries (just the Net::SNMP code itself) which will help to speed-up
      the querying and generall processing while continuing to support 64-bit counters, etc. This
-     should make it a lot quicker that the 2.x.x series
+     should make it a lot quicker than the 2.x.x series
    - Support multiple-interface checking during the same run, both across the same device and
      multiple devices checking via a new command-line calling sequence, which will aggrigrate the
      bandwidth from all interfaces requested.
-   - Support for v1, v2c and v3 connections, with support for usernames/passwords over the v3
+   - Support for v1, v2c and v3 connections, with support for usernames/passwords over the snmpv3
      protocol (with difference devices supporting different versions and access information during
      the same runtime).
-   - Support for different versions of SNMP with additional username and passwords (which can be
-     specified by files rather than on the command line).
+   - Support for different versions of SNMP (with support for username and passwords with snmpv3).
    - Can check if interfaces are up or down, and using the multiple interfaces support as well, you
      can get the script to tell you when any one interface is down, or when no interfaces selected
      are up (which is the default option, although checking overall is disabled by default). Useful
@@ -204,6 +216,19 @@ want to monitor their overall usage.
   3.0.0rc2 (11.10.2008)
    - Corrected small error with cycle value for the 64-bit counters, allowing it to report a wrong
      value when a 64-bit counter cycles back to zero.
+     
+  3.0.0 (13.10.2008)
+   - Updated the regular expression for the --interface syntax check to split out the v1/v2 and v3
+     checks, so the regex will fail is v3 is given and there's no username and password (or is v1 or
+     v2 is given, and a username and password are specified).
+   - Reordered the coding slightly so that there are two seperate loops for the check and re-check.
+     Now, all interfaces are first checked, if --on-the-fly is enabled (or there are is value for
+     which we have no historical data) the script then runs the pause one, before re-looping through
+     all the interfaces for remaining checks. This drops the old requirement of having to pause for
+     each interface separately (for example, if you were checking three ports on three interfaces
+     with --on-the-fly enabled and a --pause of 30 seconds, the rc1/rc2 versions would take around
+     90 seconds, where as this would only take a 30 second pause, regardless on the number of
+     interfaces.
      
 --
 Jonathan Wright (Technical Director)

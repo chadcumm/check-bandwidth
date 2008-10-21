@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 # --------------------------------------------------------------------------------------------------
-# check_bandwidth3 3.0.0rc2
+# check_bandwidth3 3.0.0
 #    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
 #    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 # --------------------------------------------------------------------------------------------------
@@ -72,8 +72,8 @@ our ($_active) = 0;
 
 # calculate the point at which the counter will cycle (based on 32-bit counter): if the interface
 #  supports 64-bit, it's unlikely to time out (will last for about 15 years on a 40Gbps port)
-$_cycle32 = ((2<<31)*2);
-$_cycle64 = ((2<<63)*2);
+#$_cycle32 = ((2<<31)*2);
+#$_cycle64 = ((2<<63)*2);
 
 # --------------------------------------------------------------------------------------------------
 # start the program by processing the command-line options, but first create a variable to hold the
@@ -141,12 +141,12 @@ unless ($_options{'on-the-fly'}) {
 # stepping through each interface provided, connect to the SNMP agent and get information about
 #  each requested interface.
 foreach my $device (@devices) {
-  my ($session, $error, $request);
+  my ($error, $request);
 
   # check how we need to connect to the device
   if ($device->{'version'} eq 3) {
     # connect to the SNMP agent using the v3 protocol with a username and password
-    ($session, $error) = Net::SNMP->session(
+    ($device->{'session'}, $error) = Net::SNMP->session(
       -hostname      => $device->{'hostname'},
       -version       => $device->{'version'},
       -username      => $device->{'username'},
@@ -156,7 +156,7 @@ foreach my $device (@devices) {
     );
   } else {
     # connect to the SNMP agent using either v1 or v2c protocol using a community read string
-    ($session, $error) = Net::SNMP->session(
+    ($device->{'session'}, $error) = Net::SNMP->session(
       -hostname      => $device->{'hostname'},
       -version       => $device->{'version'},
       -community     => $device->{'community'},
@@ -167,26 +167,25 @@ foreach my $device (@devices) {
 
   # if we cannot get the sysDesc OID, assume that the attempt has failed
   __critical('SNMP connection failed on '.$device->{'hostname'}.' with error: '.$error)
-    unless (defined($session));
+    unless (defined($device->{'session'}));
 
   # check we can now talk with the agent - failing if we cannot get the device's description
-  __critical('SNMP agent failure: '.$session->error())
-    unless (defined($request = $session->get_request(-varbindlist=>[$_oid{'sysDesc'}])));
+  __critical('SNMP agent failure: '.$device->{'session'}->error())
+    unless (defined($request = $device->{'session'}->get_request(-varbindlist=>[$_oid{'sysDesc'}])));
   
   # create holders for the information we're about to process
-  our ($cache, %count, %recount);
-  our ($refetch) = '';
+  our ($cache, $refetch) = '';
   
   # get the count for each interface provided
-  %count = fetch_interfaces($session, $device);
+  $device->{'count'} = fetch_interfaces($device);
 
   # run a check on the interface status first
-  foreach my $interface (keys %count) {
+  foreach my $interface (keys %{$device->{'count'}}) {
     # check if the interface is down should --all-up be enabled
-    __down('Interface '.$interface.' on '.$device->{'hostname'}.' is '.$count{$interface}->{'connected'})
-      if ($_options{'all-up'} && $count{$interface}->{'connected'} ne 'active');
+    __down('Interface '.$interface.' on '.$device->{'hostname'}.' is '.$device->{'count'}{$interface}->{'connected'})
+      if ($_options{'all-up'} && $device->{'count'}{$interface}->{'connected'} ne 'active');
     # otherwise just complete a general check, changing $_active if one is found up.
-    $_active = 1 if ($_active eq 0 && $count{$interface}->{'connected'} eq 'active');
+    $_active = 1 if ($_active eq 0 && $device->{'count'}{$interface}->{'connected'} eq 'active');
   }
 
   # unless --on-the-fly is enabled, process each of the interfaces, locating and retrieving each of
@@ -198,7 +197,7 @@ foreach my $device (@devices) {
                     ' ('.$_options{'save'}.$_options{'path'}.$device->{'hostname'}.')')
       unless (-e $_options{'save'}.$_options{'path'}.$device->{'hostname'});
       
-    foreach my $interface (keys %count) {
+    foreach my $interface (keys %{$device->{'count'}}) {
       # formuate the save path for the current interface
       $cache = sprintf('%2$s%1$s%3$s%1$s%4$s',
                  $_options{'path'}, $_options{'save'}, $device->{'hostname'}, $interface);
@@ -222,23 +221,25 @@ foreach my $device (@devices) {
           # if the port isn't 64bit enabled, make sure the amount time difference between now and
           # the cached data isn't greater than the time it takes for the counter to wrap around
           # ensuring a true value (if it is greater, we'll add it to the refetch variable
-          ($count{$interface}->{'64bit'}||((time-$hash{'timestamp'})<($_cycle32/($hash{'speed'}/8))))
+          ($device->{'count'}{$interface}->{'64bit'}||((time-$hash{'timestamp'})<($_cycle32/($hash{'speed'}/8))))
         ) {
           # if any of the above checks fail, then we'll need to refetch the interface's values
+          #  also enable on-the-fly so we can catch them by running the next set of loops
           $refetch = ($refetch eq '' ? '' : ',').$interface;
+          $_options{'on-the-fly'} = 1 unless $_options{'on-the-fly'};
         } else {
           # otherwise the data is fine, so calcuate usage and add to the bandwidth
-          $bandwidth{'rx'} += 8*((($count{$interface}->{'rx'}
-                               + ($count{$interface}->{'rx'} < $hash{'rx'} ?
-                                 ($count{$interface}->{'64bit'} ? $_cycle64 : $_cycle32) : 0))
+          $bandwidth{'rx'} += 8*((($device->{'count'}{$interface}->{'rx'}
+                               + ($device->{'count'}{$interface}->{'rx'} < $hash{'rx'} ?
+                                 ($device->{'count'}{$interface}->{'64bit'} ? $_cycle64 : $_cycle32) : 0))
                                - $hash{'rx'}) / 
-                                 ($count{$interface}->{'timestamp'}-$hash{'timestamp'}));
-          $bandwidth{'tx'} += 8*((($count{$interface}->{'tx'}
-                               + ($count{$interface}->{'tx'} < $hash{'tx'} ?
-                                 ($count{$interface}->{'64bit'} ? $_cycle64 : $_cycle32) : 0))
+                                 ($device->{'count'}{$interface}->{'timestamp'}-$hash{'timestamp'}));
+          $bandwidth{'tx'} += 8*((($device->{'count'}{$interface}->{'tx'}
+                               + ($device->{'count'}{$interface}->{'tx'} < $hash{'tx'} ?
+                                 ($device->{'count'}{$interface}->{'64bit'} ? $_cycle64 : $_cycle32) : 0))
                                - $hash{'tx'}) / 
-                                 ($count{$interface}->{'timestamp'}-$hash{'timestamp'}));
-          $bandwidth{'available'} += $count{$interface}->{'speed'} unless ($_options{'override'} gt 0);
+                                 ($device->{'count'}{$interface}->{'timestamp'}-$hash{'timestamp'}));
+          $bandwidth{'available'} += $device->{'count'}{$interface}->{'speed'} unless ($_options{'override'} gt 0);
 
           # now save the current version of the data back to the cache file for later lookup so long
           #  as on-the-fly hasn't been enabled
@@ -247,47 +248,61 @@ foreach my $device (@devices) {
               __critical('Cannot open cache file for writing ('.$cache.')');
             # save only the information we need back to the file
             print CACHE
-              "timestamp:".$count{$interface}->{'timestamp'}."\n".
-              "speed:".$count{$interface}->{'speed'}."\n".
-              "tx:".$count{$interface}->{'tx'}."\n".
-              "rx:".$count{$interface}->{'rx'};
+              "timestamp:".$device->{'count'}{$interface}->{'timestamp'}."\n".
+              "speed:".$device->{'count'}{$interface}->{'speed'}."\n".
+              "tx:".$device->{'count'}{$interface}->{'tx'}."\n".
+              "rx:".$device->{'count'}{$interface}->{'rx'};
             # and close it
             close(CACHE);
           }
         }
       } else {
         # as the cache file doesn't exist, we'll need to refetch the values for this interface
+        #  also enable on-the-fly so we can catch them by running the next set of loops
         $refetch .= ($refetch eq '' ? '' : ',').$interface;
+        $_options{'on-the-fly'} = 1 unless $_options{'on-the-fly'};
       }
     }
 
     # now save the refetch information into the device's hash    
     $device->{'refetch'} = $refetch;
   }
-  
-  # now go through re-fetching the data from the device - if we're running with on-the-fly, it will
-  #  of course be everything, but in the case of failed cache lookups, we need to change for any
-  #  refetch requests first.
-  if ($_options{'on-the-fly'} || $device->{'refetch'} ne "") {
-    # first, sleep
-    sleep($_options{'pause'});
+} # we're going to come out of the now, so we can run a single pause for all devices and re-check
+  #  all devices in one go afterwards (if required)
+
+if ($_options{'on-the-fly'}) {
+  # first, sleep
+  sleep($_options{'pause'}); # single pause for all devices!
+
+  # now go through re-fetching the data from the devices on one go
+  foreach my $device (@devices) {
+    # first, check if there is no data to refect - no point re-checking all the data if we don't
+    #  need to (closing the session first)
+    if ($device->{'refetch'} eq '') {
+      $device->{'session'}->close();
+      next;
+    }
     
-    # and then re-fetch the data
-    %recount = fetch_interfaces($session, $device);
-    foreach my $interface (keys %recount) {
-      $bandwidth{'rx'} += 8*((($recount{$interface}->{'rx'}
-                           + ($recount{$interface}->{'rx'} < $count{$interface}->{'rx'} ?
-                             ($recount{$interface}->{'64bit'} ? $_cycle64 : $_cycle32) : 0))
-                           - $count{$interface}->{'rx'}) /
-                             ($recount{$interface}->{'timestamp'}-$count{$interface}->{'timestamp'})
+    # register variables for this loop
+    our ($cache);
+    
+    # and then re-fetch the data for those that we have to
+    $device->{'recount'}
+     = fetch_interfaces($device);
+    foreach my $interface (keys %{$device->{'recount'}}) {
+      $bandwidth{'rx'} += 8*((($device->{'recount'}{$interface}->{'rx'}
+                           + ($device->{'recount'}{$interface}->{'rx'} < $device->{'count'}{$interface}->{'rx'} ?
+                             ($device->{'recount'}{$interface}->{'64bit'} ? $_cycle64 : $_cycle32) : 0))
+                           - $device->{'count'}{$interface}->{'rx'}) /
+                             ($device->{'recount'}{$interface}->{'timestamp'}-$device->{'count'}{$interface}->{'timestamp'})
                           );
-      $bandwidth{'tx'} += 8*((($recount{$interface}->{'tx'}
-                           + ($recount{$interface}->{'tx'} < $count{$interface}->{'tx'} ?
-                             ($recount{$interface}->{'64bit'} ? $_cycle64 : $_cycle32) : 0))
-                           - $count{$interface}->{'tx'}) /
-                             ($recount{$interface}->{'timestamp'}-$count{$interface}->{'timestamp'})
+      $bandwidth{'tx'} += 8*((($device->{'recount'}{$interface}->{'tx'}
+                           + ($device->{'recount'}{$interface}->{'tx'} < $device->{'count'}{$interface}->{'tx'} ?
+                             ($device->{'recount'}{$interface}->{'64bit'} ? $_cycle64 : $_cycle32) : 0))
+                           - $device->{'count'}{$interface}->{'tx'}) /
+                             ($device->{'recount'}{$interface}->{'timestamp'}-$device->{'count'}{$interface}->{'timestamp'})
                           );
-      $bandwidth{'available'} += $recount{$interface}->{'speed'} unless ($_options{'override'} gt 0);
+      $bandwidth{'available'} += $device->{'recount'}{$interface}->{'speed'} unless ($_options{'override'} gt 0);
 
       # formuate the save path for the current interface
       $cache = sprintf('%2$s%1$s%3$s%1$s%4$s',
@@ -300,18 +315,18 @@ foreach my $device (@devices) {
           __critical('Cannot open cache file for writing ('.$cache.')');
         # save only the information we need back to the file
         print CACHE
-          "timestamp:".$count{$interface}->{'timestamp'}."\n".
-          "speed:".$count{$interface}->{'speed'}."\n".
-          "tx:".$count{$interface}->{'tx'}."\n".
-          "rx:".$count{$interface}->{'rx'};
+          "timestamp:".$device->{'count'}{$interface}->{'timestamp'}."\n".
+          "speed:".$device->{'count'}{$interface}->{'speed'}."\n".
+          "tx:".$device->{'count'}{$interface}->{'tx'}."\n".
+          "rx:".$device->{'count'}{$interface}->{'rx'};
         # and close it
         close(CACHE);
       }
     }
+
+    # close the SNMP connection, as we no longer need it
+    $device->{'session'}->close();
   }
-  
-  # close the SNMP connection, as we no longer need it
-  $session->close();
 }
 
 # now we've processed every device and read every interface, check $_active
@@ -389,17 +404,17 @@ sub add_device() {
   my ($device) = shift;
   
   # [version://][username[:password]@]hostname[:port]/[community:]interface[,interface]
-  if ($device =~ m/(v([123])?:\/\/)?((\w+)(:(\w+))?@)?([a-zA-Z0-9\.\-_]+)(:(\d+))?\/(([\S]+):)?((\d+,?)+)/) {
+  if ($device =~ m/((v([12]):\/\/)|v(3):\/\/((\w+)(:(\w+))@))?([a-zA-Z0-9\.\-_]+)(:(\d+))?\/(([\S]+):)?((\d+,?)+)/) {
     # convert the string into a hash-format and then append to @devices
     my (%hash) = (
       'device'    => $device,
-      'username'  => (defined $4 ? $4 : ''),
-      'password'  => (defined $6 ? $6 : ''),
-      'version'   => (defined $2 ? $2 : 1),
-      'community' => (defined $11 ? $11 : 'public'),
-      'hostname'  => lc($7),
-      'port'      => (defined $9 ? $9 : 161),
-      'interface' => $12
+      'username'  => (defined $6 ? $6 : ''),
+      'password'  => (defined $7 ? $8 : ''),
+      'version'   => (defined $3 ? $3 : (defined $4 ? $4 : '1')),
+      'community' => (defined $13 ? $13 : 'public'),
+      'hostname'  => lc($9),
+      'port'      => (defined $11 ? $11 : 161),
+      'interface' => $14
     );
 
     # check for v3 connections that we have a username (password should be OK blank)    
@@ -419,7 +434,7 @@ sub fetch_interfaces {
   # create variables required
   my (@interfaces, @list, $request, %return);
   # get the Net::SNMP session and interface details
-  my ($session, $device) = (shift, shift);
+  my ($device) = shift;
   
   # prepare the list of OID numbers for the interface - this can now include more than one
   #  port on a device - however, check if the refetch option exists, and use that instead and
@@ -445,8 +460,8 @@ sub fetch_interfaces {
 
   # run the SNMP query, and throw a CRITICAL error message if we can't get
   #  any data back from the device
-  __critical('Count not communitate with SNMP agent: '.$session->error())
-    unless (defined($request = $session->get_request(-varbindlist=>[@list])));
+  __critical('Count not communitate with SNMP agent: '.$device->{'session'}->error())
+    unless (defined($request = $device->{'session'}->get_request(-varbindlist=>[@list])));
 
   # run through each of the  interfaces and process the returned details from the SNMP agent
   foreach my $interface (@interfaces) {
@@ -465,10 +480,18 @@ sub fetch_interfaces {
         'name'      => $request->{$_oid{'ifDescription'}.$interface},
         'speed'     => ($_options{'override'} ?
                         $_options{'override'} : $request->{$_oid{'ifSpeed'}.$interface}),
-        'connected' => ($request->{$_oid{'ifEnabled'}.$interface} eq 1 ? ($request->{$_oid{'ifConnected'}.$interface} eq 1 ? 'active' : 'disconnected') : 'disabled'),
-        'tx'        => ($device->{'version'} gt 1 && $request->{$_oid{'ifTX64'}.$interface} gt 0 ? $request->{$_oid{'ifTX64'}.$interface} : $request->{$_oid{'ifTX32'}.$interface}),
-        'rx'        => ($device->{'version'} gt 1 && $request->{$_oid{'ifRX64'}.$interface} gt 0 ? $request->{$_oid{'ifRX64'}.$interface} : $request->{$_oid{'ifRX32'}.$interface}),
-        '64bit'     => ($device->{'version'} gt 1 && ($request->{$_oid{'ifRX64'}.$interface} gt 0 || $request->{$_oid{'ifTX64'}.$interface} gt 0) ? 1 : 0)
+        'connected' => ($request->{$_oid{'ifEnabled'}.$interface} eq 1 ?
+                         ($request->{$_oid{'ifConnected'}.$interface} eq 1 ?
+                           'active' : 'disconnected')
+                       : 'disabled'),
+        'tx'        => ($device->{'version'} gt 1 && $request->{$_oid{'ifTX64'}.$interface} gt 0 ?
+                         $request->{$_oid{'ifTX64'}.$interface}
+                       : $request->{$_oid{'ifTX32'}.$interface}),
+        'rx'        => ($device->{'version'} gt 1 && $request->{$_oid{'ifRX64'}.$interface} gt 0 ?
+                         $request->{$_oid{'ifRX64'}.$interface}
+                       : $request->{$_oid{'ifRX32'}.$interface}),
+        '64bit'     => ($device->{'version'} gt 1 && ($request->{$_oid{'ifRX64'}.$interface} gt 0
+                         || $request->{$_oid{'ifTX64'}.$interface} gt 0) ? 1 : 0)
     );
 
     # now add the new data format into the return value
@@ -535,7 +558,8 @@ sub __usage {
   my $full = (shift == 1 ? 1 : 0);
 
   # output about and usage (depending on $full above)
-  print "check_bandwidth3 (v3.0.0rc2)\n Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
+  print "check_bandwidth3 (v3.0.0)\n".
+    " Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
     "Poll (via SNMP) one or more network ports (on one or more network devics)\n".
     " and calculate bandwidth usage across all the ports\n\n"
     if $full;
@@ -563,7 +587,8 @@ sub __usage {
     " -p, --pause INTEGER               (default ".$_options{'timeout'}."s)\n".
     "    Set the length of the pause when calculating results on-the-fly\n".
     "    (or between first checks when no cache value exists)\n\n".
-    " -o, --override INTEGER            (default ".($_options{'override'}?$_options{'override'}:'Off').")\n".
+    " -o, --override INTEGER            (default ".
+                                          ($_options{'override'}?$_options{'override'}:'Off').")\n".
     "    Override the maximum throughput available on selected port\n\n".
     " -f, --on-the-fly                  (default ".($_options{'on-the-fly'}?'On':'Off').")\n".
     "    Perform all calculation of bandwidth on-the-fly and don't use store\n\n".
@@ -578,12 +603,14 @@ sub __usage {
     "    across all the devices is up, and work out bandwidth usage based on that. If\n".
     "    --all-up is enabled, every interface specified must be Active, or a CRITICAL\n".
     "    (or WARNING with --down-warning) will be returned\n\n".
-    " -w, --warning INTEGER[,INTEGER]   (default ".$_options{'warning'}.($_options{'warning'} =~ /^[0-9]+[BKMGEP]$/ ? '' : '%').")\n".
+    " -w, --warning INTEGER[,INTEGER]   (default ".
+                 $_options{'warning'}.($_options{'warning'} =~ /^[0-9]+[BKMGEP]$/ ? '' : '%').")\n".
     "    Set the %age use of available bandwidth (taken from port speed, or \n".
     "    --override above) at which to trigger a WARNING. Single value is for both\n".
     "    Out & In - to specify different limits, use Out,In (If B,K,M,G,E or P is\n".
     "    appended treat as absolute value in bits, or bytes with --use-bytes)\n\n".
-    " -c, --critical INTEGER[,INTEGER]  (default ".$_options{'critical'}.($_options{'critical'} =~ /^[0-9]+[BKMGEP]$/ ? '' : '%').")\n".
+    " -c, --critical INTEGER[,INTEGER]  (default ".
+               $_options{'critical'}.($_options{'critical'} =~ /^[0-9]+[BKMGEP]$/ ? '' : '%').")\n".
     "    Value at which to trigger CRITICAL. Same syntax as --warning above\n\n".
     " -b, --use-bytes                   (default ".($_options{'use-bytes'}?'On':'Off').")\n".
     "    Use bytes instead of bits in all calculations (i.e. Megabytes not Megabits)\n\n".
