@@ -38,11 +38,11 @@ check_bandwidth 1.0.2
   To use this plugin you should have installed:
     1. Nagios(r) (http://www.nagios.org)
        This plugin was successfully tested with v2.8, and although should work
-       with other version, is untested.
+       with other versions, is untested on all others (feedback welcomed).
 
     2. Perl & Net::SNMP Module
        Was tested with Perl 5.8.8 and Net::SNMP 5.2.0 as well as Perl 5.8.5 and
-       Net::SNMP 5.1.2.
+       Net::SNMP 5.1.2 (again, feedback welcomed).
 
     3. Read-only access to SNMP on the device(s) you want to question
 
@@ -87,6 +87,11 @@ check_bandwidth 1.0.2
       value to be more dynamic - try and get the size of the counter (i.e. if
       it's Counter32 or Counter64) from the device and calculate it that way.
 
+    - Performing more analysis on the returned data from the device to work out
+      if it's going to be worth caching, rather than attempting to cache and
+      then process later (possible issue with devices not returning correct
+      interface speed value).
+
 4. Notes
 
   This is the first release of this plugin, and while I have tested it
@@ -105,6 +110,11 @@ check_bandwidth 1.0.2
 
   1.0.2 (14.11.2007)
    - Corrected reported error with $ext not being defined before it was used
+
+  1.0.3 (19.12.2007)
+   - Corrected another error in checking of cached data where ifSpeed could be
+     0 and the program would still attempt division by it, terminating the
+     program.
 
 --
 Jonathan Wright (Technical Director)
