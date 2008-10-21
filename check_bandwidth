@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 
 # -----------------------------------------------------------------------------
-# check_bandwidth 1.0.3
+# check_bandwidth 1.0.4
 #    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
-#    ~ Copyright 2007, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
+#    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 #    ~ based on the check_traffic plugin by Adrian Weiczorek
 #      and check_snmp_cisco_ifstatus by Altinity Limited
 # -----------------------------------------------------------------------------
@@ -151,12 +151,12 @@ our($return, %count, %recount, $cache);
 # find the interface on the system - append the interface number on the end
 #  of the ifType, etc. OID's. first, find the number of interfaces and made
 #  sure we're within the available limit
-critical('Cannot get number of interfaces from SNMP agent')
-  unless (defined($return = $session->get_request($_oid{'ifNumber'})));
-critical(
-  'Interface value invalid: '.$return->{$_oid{'ifNumber'}}.' available; '.
-  'trying to use interface '.$_options{'interface'}
-) if ($_options{'interface'} > $return->{$_oid{'ifNumber'}});
+#critical('Cannot get number of interfaces from SNMP agent')
+#  unless (defined($return = $session->get_request($_oid{'ifNumber'})));
+#critical(
+#  'Interface value invalid: '.$return->{$_oid{'ifNumber'}}.' available; '.
+#  'trying to use interface '.$_options{'interface'}
+#) if ($_options{'interface'} > $return->{$_oid{'ifNumber'}});
 
 # run a check against the interface if requested
 # TODO: Known Bug - Net::SNMP always returns 1 for the interface status,
@@ -459,7 +459,7 @@ sub usage {
   my $full = (shift == 1 ? 1 : 0);
 
   # output about and usage (depending on $full above)
-  print "check_bandwidth v1.0.3\n Copyright 2007 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
+  print "check_bandwidth v1.0.4\n Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
     "Poll (via SNMP) a network port and calculate bandwidth usage\n\n"
     if $full;
   print "Usage: check_bandwidth --hostname hostname --interface name\n".
