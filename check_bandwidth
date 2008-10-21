@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 # -----------------------------------------------------------------------------
-# check_bandwidth 1.1.1
+# check_bandwidth 1.1.2
 #    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
 #    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 #    ~ based on the check_traffic plugin by Adrian Weiczorek
@@ -257,7 +257,7 @@ foreach my $key (keys %levels) {
 #  read by the admin via the site or via a notice)
 $report = sprintf(
   # Nagios(r) Plugin Report: 'Status Information|Performance Data'
-  'Out: %1$sps; In: %3$sps (Sent %5$s, Received %6$s in %7$s seconds)|out=%4$s;%8$s;%10$s;0;%12$s in=%2$s;%9$s;%11$s;0;%12$s',
+  'Out: %1$sps; In: %3$sps (Sent %5$s, Received %6$s in %7$s seconds)|out=%2$s;%8$s;%10$s;0;%12$s in=%4$s;%9$s;%11$s;0;%12$s',
   adjust($tx), $tx, adjust($rx), $rx,                               # 1, 2, 3, 4
   adjust($recount{'ifTransmitted'}-$count{'ifTransmitted'}),        # 5
   adjust($recount{'ifReceived'}-$count{'ifReceived'}),              # 6
@@ -443,7 +443,7 @@ sub usage {
   my $full = (shift == 1 ? 1 : 0);
 
   # output about and usage (depending on $full above)
-  print "check_bandwidth v1.1.1\n Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
+  print "check_bandwidth v1.1.2\n Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
     "Poll (via SNMP) a network port and calculate bandwidth usage\n\n"
     if $full;
   print "Usage: check_bandwidth --hostname hostname --interface name\n".
@@ -476,8 +476,8 @@ sub usage {
     " -w, --warning INTEGER[,INTEGER]   (default ".$_options{'warning'}.($_options{'warning'} =~ /^[0-9]+[BKMGEP]$/ ? '' : '%').")\n".
     "    Set the %age use of available bandwidth (taken from port speed, or \n".
     "    --override above) at which to trigger a WARNING. Single value is for both\n".
-    "    RX & TX - to specify different limits, use RX,TX\n".
-    "    (if B,K,M,G,E or P is appended treat as absolute value in bits, or --bytes)\n\n".
+    "    RX & TX - to specify different limits, use RX,TX. (If B,K,M,G,E or P is\n".
+    "    appended treat as absolute value in bits, or bytes with --use-bytes)\n\n".
     " -c, --critical INTEGER[,INTEGER]  (default ".$_options{'critical'}.($_options{'critical'} =~ /^[0-9]+[BKMGEP]$/ ? '' : '%').")\n".
     "    Value at which to trigger CRITICAL. Same semantics as --warning above\n\n".
     " -b, --use-bytes                   (default ".($_options{'use-bytes'}?'On':'Off').")\n".
