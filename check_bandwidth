@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # -----------------------------------------------------------------------------
-# check_bandwidth 1.0.2
+# check_bandwidth 1.0.3
 #    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
 #    ~ Copyright 2007, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 #    ~ based on the check_traffic plugin by Adrian Weiczorek
@@ -63,19 +63,20 @@ $_storage  = '/tmp/.traffic';
 
 # command-line controlled options (including defaults)
 %_options = (
-  'community'  => 'public', 
-  'version'    => '2c',
-  'hostname'   => '',
-  'interface'  => '',
-  'override'   => 0,
-  'warning'    => 75,
-  'critical'   => 90,
-  'timeout'    => 15,
-  'on-the-fly' => 0,
-  'check-up'   => 0,
-  'pause'      => 10,
-  'use-bytes'  => 0,
-  'use-mega'  => 0
+  'community'     => 'public', 
+  'version'       => '2c',
+  'hostname'      => '',
+  'interface'     => '',
+  'override'      => 0,
+  'warning'       => 75,
+  'critical'      => 90,
+  'timeout'       => 15,
+  'on-the-fly'    => 0,
+  'check-up'      => 0,
+  'pause'         => 10,
+  'use-bytes'     => 0,
+  'use-mega'      => 0,
+  'default-speed' => 10000
 );
 
 # calculate the point at which the counter will cycle (based on 32-bit counter):
@@ -184,16 +185,16 @@ if ($_options{'on-the-fly'} || !(-e $cache)) {
   close(CACHE);
 
   unless (
+    # make sure we have values for speed, tx and rx
+    (($count{'ifSpeed'} > 0) && ($count{'ifReceived'} > 0) && ($count{'ifTransmitted'} > 0)) &&
     # make sure that there is no chance that the counter has cycled around
     #  (i.e. the counter hasn't cycled based on the speed of the interface)
     #  TODO: this may be too short - look into coding comparison between
     #        this and a minimum period the data should be valid for (10m)
-    ((time - $count{'ifTimeStamp'}) < ($_cycle/($count{'ifSpeed'}/8))) &&
-    # make sure we have values for tx and rx
-    (($count{'ifReceived'} > 0) && ($count{'ifTransmitted'} > 0))
+    ((time - $count{'ifTimeStamp'}) < ($_cycle/($count{'ifSpeed'}/8)))
   ) {
     # if any of these fail, ignore the values and fetch a fresh set of results
-    #  from the device, before sleeping the alloted time
+    #  from the device, before sleeping for the alloted time
     %count = get_count();
     sleep($_options{'pause'});
   }
@@ -458,7 +459,7 @@ sub usage {
   my $full = (shift == 1 ? 1 : 0);
 
   # output about and usage (depending on $full above)
-  print "check_bandwidth v1.0.2\n Copyright 2007 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
+  print "check_bandwidth v1.0.3\n Copyright 2007 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
     "Poll (via SNMP) a network port and calculate bandwidth usage\n\n"
     if $full;
   print "Usage: check_bandwidth --hostname hostname --interface name\n".
