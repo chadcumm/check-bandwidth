@@ -1,4 +1,4 @@
-check_bandwidth 1.0.4
+check_bandwidth
    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 
@@ -47,7 +47,7 @@ check_bandwidth 1.0.4
     3. Read-only access to SNMP on the device(s) you want to question
 
   Plugin has been successfully tested on Gentoo Linux and CentOS4 servers, and
-  should work on all distributions provided the above three critera match.
+  should work on all distributions provided the above three criteria match.
 
 
 3. Quick install
@@ -74,37 +74,25 @@ check_bandwidth 1.0.4
 
 4. Known Bugs & TODOs
 
-    - The check-up function doesn't work at the moment as Net::SNMP resolves
-      the statement 'INTEGER: down(2)' to 1, and 'INTEGER: up(1)' to 1 as well,
-      so there's no way right now to check whether the interface is up or down.
-
-    - The code used to determin if a cached file is out-of-date can become
-      stale very quickly on fast ports (such as Gigabit ports), and in theory
-      the port can cycle the counter after only a few seconds. Need to look
-      into that.
-
-    - As part of the above, try and update the code that works out the cycle
-      value to be more dynamic - try and get the size of the counter (i.e. if
-      it's Counter32 or Counter64) from the device and calculate it that way.
-
     - Performing more analysis on the returned data from the device to work out
       if it's going to be worth caching, rather than attempting to cache and
       then process later (possible issue with devices not returning correct
       interface speed value).
 
-    - Improve checking of interface numbering as checking against ifNumber no
-      longer works correctly (corrected in 1.0.4).
-
 4. Notes
 
-  This is the first release of this plugin, and while I have tested it
-  successfully on my system, if you do some accross any unknown bugs, please
-  feel free to drop me an e-mail on jonathan (at) jabwebsolutions.co.uk.
+  The plugin works well for me and is in use on my system and should work fine.
+
+  I am always open to feedback, bug reports, etc. from users (may of which have
+  been incorporated into the program over various revisions - your comments do
+  matter).
+
+  Please feel free to drop me an e-mail on jonathan (at) jabwebsolutions.co.uk.
 
 5. Changelog
 
   1.0.0 (23.04.2007)
-   - Inital Release
+   - Initial Release
 
   1.0.1 (19.05.2007)
    - Corrected error in checking of cached data where a variable was used that
@@ -122,6 +110,25 @@ check_bandwidth 1.0.4
   1.0.4 (26.01.2008)
    - Removed check against ifNumber of interfaces as shows number of entries
      and interfaces may not be numbered in order.
+
+  1.1.0 (27.01.2008)
+   - Altered code for locating storage to support Win32 platforms as well (will
+     now use either '/tmp/.traffic' or 'c:\Windows\Temp\traffic' by default).
+   - Added --save to allow you to define your own location to store the default
+     storage location (still uses currently location logic, with sub-directories
+     based on hostnames).
+   - Changed text for --warning to more specifically explain the logic behind
+     the %age/relative logic for --warning and --critical.
+   - Also added support for straight bits/bytes with 'B' option to --warning and
+     --critical logic.
+   - Rewrote Performance Data return to be PnP compatible, with separate
+     entries for both in and out streams.
+   - Corrected error in short usage description (specified --bytes when it's 
+     actually --use-bytes).
+   - Added support for changing the SNMP agent port
+   - Removed support for --check-up in this version as it currently doesn't work
+     (is available, and should work, in the 2.x series)
+   - Improved checking for the --interface option
 
 --
 Jonathan Wright (Technical Director)
