@@ -1,0 +1,171 @@
+check_bandwidth
+   ~ Nagios(r) SNMP Network Traffic Monitor Plugin
+   ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
+
+-- ----------------------------------------------------------------------------
+
+1. Introduction
+
+  Based on check_traffic and check_snmp_cisco_ifstatus plugins (as both had
+  features that I needed, but neither were quite right), check_bandwidth is a
+  re-write from the ground up using perl's Net::SNMP library.
+
+  Simply specify the hostname and interface number (plus community, if not 
+  'public') and it will make a request against the device for the interface's 
+  statistics.
+
+  It's then compared against the cache of the last request and bandwidth is 
+  calculated. If no cache exists (or --on-the-fly specified, preventing use of 
+  the cache), then the program will sleep for a short period of time
+  (controlled with --pause) before re-fetching the statistics and calculating
+  the bandwidth.
+
+  The program can output in either bits (by default) or bytes (using
+  --use-bytes) and will convert all values into human-readable format by
+  default (i.e. Kb, Mb, Gb...), unless forced to use Mb for all output with 
+  --use-mega.
+
+  Finally, warning & critical status reports can be set independently for each 
+  direction, as well as calculated as a percentage of available bandwidth or 
+  absolute (by specifying a suffix, such as 10M for 10 megabit, or 10 megabyte 
+  if --use-bytes specified).
+
+  Note: Nagios is a registered trademark of Ethan Galstad. 
+
+
+2. Requirements
+
+  To use this plugin you should have installed:
+    1. Nagios(r) (http://www.nagios.org)
+       This plugin was successfully tested with v2.8, and although should work
+       with other versions, is untested on all others (feedback welcomed).
+
+    2. Perl & Net::SNMP Module
+       Was tested with Perl 5.8.8 and Net::SNMP 5.2.0 as well as Perl 5.8.5 and
+       Net::SNMP 5.1.2 (again, feedback welcomed).
+
+    3. Read-only access to SNMP on the device(s) you want to question
+
+  Plugin has been successfully tested on Gentoo Linux and CentOS4 servers, and
+  should work on all distributions provided the above three criteria match.
+
+
+3. Quick install
+
+  Please follow these steps to install check_bandwidth (it's pretty easy
+  really - unpack, move and configure!)
+
+    1. Unpack package into a temporary directory. (eg: /usr/tmp) and copy
+       the check_bandwidth script into your plugins directory
+         (e.g. /usr/nagios/libexec)
+
+    2. By default, check_bandwidth will store all cache files under the
+       directory /tmp/.traffic. If you want to change this, please edit the
+       file and change the $_storage variable towards the top.
+
+    3. Make sure check_bandwidth can create and/or write to the $_storage
+       directory.
+
+    4. Configure Nagios(r) to use the plugin with the command-line attributes
+       that you require (see './check_bandwidth --help') for full details on
+       all available options.
+
+    5. Reload Nagios daemon.
+
+4. Known Bugs & TODOs
+
+    - Performing more analysis on the returned data from the device to work out
+      if it's going to be worth caching, rather than attempting to cache and
+      then process later (possible issue with devices not returning correct
+      interface speed value).
+
+    - Further testing for 2.0.0rc1! :)
+
+4. Notes
+
+  The plugin works well for me (at least the 1.x series - haven't yet tried the
+  2.x series in production), however both have been tested and should work fine.
+
+  I am always open to feedback, bug reports, etc. from users (may of which have
+  been incorporated into the program over various revisions - your comments do
+  matter).
+
+  Please feel free to drop me an e-mail on jonathan (at) jabwebsolutions.co.uk.
+
+  I'm would also appreciate feedback for 2.0.0rc1 from anybody that uses it,
+  especially those with devices that support 64-bit counters. Let me know how
+  you get along!
+
+5. Changelog
+
+  1.0.0 (23.04.2007)
+   - Initial Release
+
+  1.0.1 (19.05.2007)
+   - Corrected error in checking of cached data where a variable was used that
+     had not yet been created (referenced $recount not $count).
+   - Made changes to --help message
+
+  1.0.2 (14.11.2007)
+   - Corrected reported error with $ext not being defined before it was used
+
+  1.0.3 (19.12.2007)
+   - Corrected another error in checking of cached data where ifSpeed could be
+     0 and the program would still attempt division by it, terminating the
+     program.
+
+  1.0.4 (26.01.2008)
+   - Removed check against ifNumber of interfaces as shows number of entries
+     and interfaces may not be numbered in order.
+
+  1.1.0 (27.01.2008)
+   - Altered code for locating storage to support Win32 platforms as well (will
+     now use either '/tmp/.traffic' or 'c:\Windows\Temp\traffic' by default).
+   - Added --save to allow you to define your own location to store the default
+     storage location (still uses currently location logic, with sub-directories
+     based on hostnames).
+   - Changed text for --warning to more specifically explain the logic behind
+     the %age/relative logic for --warning and --critical.
+   - Also added support for straight bits/bytes with 'B' option to --warning and
+     --critical logic.
+   - Rewrote Performance Data return to be PnP compatible, with separate
+     entries for both in and out streams.
+   - Corrected error in short usage description (specified --bytes when it's 
+     actually --use-bytes).
+   - Added support for changing the SNMP agent port
+   - Removed support for --check-up in this version as it currently doesn't work
+     (is available, and should work, in the 2.x series)
+   - Improved checking for the --interface option
+   - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined
+     originally, so was set to 'b' as a default. However, this outputed 'bbps'
+     instead of 'bps', so it's now been changed to a blank value and should work
+     as intended now!
+
+  1.1.1 (28.01.2008)
+   - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined
+     originally, so was set to 'b' as a default. However, this outputed 'bbps'
+     instead of 'bps', so it's now been changed to a blank value and should work
+     as intended now!
+
+  1.1.2 (26.03.2008)
+    - Fixed bug in PnP settings where the values were the wrong way round.
+
+  2.0.0rc1 (28.01.2008)
+   - Rebuilt the code to work on Net::SNMP::Interfaces to provide easier access
+     to parts of the interface that I had problems working with in the past.
+   - Added support for --check-up again
+   - Added --down-warning option to set --check-up to return a WARNING when down
+     rather than CRITICAL.
+   - As part of the update, it should now support 64-bit counters and adjust
+     accordingly. However, this has not been tested (don't have devices which
+     support 64-bit counters, so YMMV and feedback appreciated).
+
+  2.0.0rc2 (26.03.2008)
+    - Fixed bug in PnP settings where the values were the wrong way round.
+    - Fixed error in function naming after change to new system.
+
+--
+Jonathan Wright (Technical Director)
+JAB Web Solutions Limited
+
+http://www.jabwebsolutions.co.uk/
