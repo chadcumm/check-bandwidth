@@ -201,10 +201,6 @@ want to monitor their overall usage.
      if you have backup switches, etc. and don't want to trigger if there's a problem with one
      switch and the interface on another is fine.
      
-  3.0.0rc2 (11.10.2008)
-   - Corrected small error with cycle value for the 64-bit counters, allowing it to report a wrong
-     value when a 64-bit counter cycles back to zero.
-     
 --
 Jonathan Wright (Technical Director)
 JAB Web Solutions Limited
