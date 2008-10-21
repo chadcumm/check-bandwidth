@@ -1,4 +1,4 @@
-check_bandwidth 1.0.0
+check_bandwidth 1.0.2
    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
    ~ Copyright 2007, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 
@@ -102,6 +102,9 @@ check_bandwidth 1.0.0
    - Corrected error in checking of cached data where a variable was used that
      had not yet been created (referenced $recount not $count).
    - Made changes to --help message
+
+  1.0.2 (14.11.2007)
+   - Corrected reported error with $ext not being defined before it was used
 
 --
 Jonathan Wright (Technical Director)
