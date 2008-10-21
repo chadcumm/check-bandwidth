@@ -79,15 +79,22 @@ check_bandwidth
       then process later (possible issue with devices not returning correct
       interface speed value).
 
+    - Further testing for 2.0.0rc1! :)
+
 4. Notes
 
-  The plugin works well for me and is in use on my system and should work fine.
+  The plugin works well for me (at least the 1.x series - haven't yet tried the
+  2.x series in production), however both have been tested and should work fine.
 
   I am always open to feedback, bug reports, etc. from users (may of which have
   been incorporated into the program over various revisions - your comments do
   matter).
 
   Please feel free to drop me an e-mail on jonathan (at) jabwebsolutions.co.uk.
+
+  I'm would also appreciate feedback for 2.0.0rc1 from anybody that uses it,
+  especially those with devices that support 64-bit counters. Let me know how
+  you get along!
 
 5. Changelog
 
@@ -130,14 +137,15 @@ check_bandwidth
      (is available, and should work, in the 2.x series)
    - Improved checking for the --interface option
 
-  1.1.1 (28.01.2008)
-   - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined
-     originally, so was set to 'b' as a default. However, this outputed 'bbps'
-     instead of 'bps', so it's now been changed to a blank value and should work
-     as intended now!
-    
-  1.1.2 (26.03.2008)
-    - Fixed bug in PnP settings where the values were the wrong way round.
+  2.0.0rc1 (28.01.2008)
+   * Rebuilt the code to work on Net::SNMP::Interfaces to provide easier access
+     to parts of the interface that I had problems working with in the past.
+   - Added support for --check-up again
+   - Added --down-warning option to set --check-up to return a WARNING when down
+     rather than CRITICAL.
+   - As part of the update, it should now support 64-bit counters and adjust
+     accordingly. However, this has not been tested (don't have devices which
+     support 64-bit counters, so YMMV and feedback appreciated).
 
 --
 Jonathan Wright (Technical Director)
