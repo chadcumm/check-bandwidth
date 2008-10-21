@@ -1,66 +1,34 @@
-check_bandwidth3
+check_bandwidth 1.0.4
    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 
 -- ----------------------------------------------------------------------------
 
-Poll (via SNMP) one or more interfaces on one or more devices (with each device supporting a
-different protocol and access control) checking to see of the ports are active and monitor
-bandwidth. Check a single port, or monitor two or more at the same time on different devices
-(bandwidth will be aggregated) - great if you have servers, etc. with multiple network ports and
-want to monitor their overall usage.
-
 1. Introduction
 
-  Originally based on check_traffic and check_snmp_cisco_ifstatus (as both had features that I
-  needed, but neither were quite right for me), check_bandwidth3 is now a rewrite of the original
-  check_bandwidth (but still using the Net::SNMP library), taking in the best bits of v1 and v2, as
-  well as taking a whole new look at how to check and monitor network connections and usage.
+  Based on check_traffic and check_snmp_cisco_ifstatus plugins (as both had
+  features that I needed, but neither were quite right), check_bandwidth is a
+  re-write from the ground up using perl's Net::SNMP library.
 
-  Using the new-syntax --interface command, you can work your way from checking just a single
-  interface on one device, to checking two or more interfaces on the same device, or even checking
-  one or more interfaces on two or more devices! If you had a server with six network ports, with
-  two connections to three switches, you could check them all with a single command and monitor it's
-  overall network usage!
+  Simply specify the hostname and interface number (plus community, if not 
+  'public') and it will make a request against the device for the interface's 
+  statistics.
 
-  For example:
+  It's then compared against the cache of the last request and bandwidth is 
+  calculated. If no cache exists (or --on-the-fly specified, preventing use of 
+  the cache), then the program will sleep for a short period of time
+  (controlled with --pause) before re-fetching the statistics and calculating
+  the bandwidth.
 
-    check_bandwidth3 --interface v1://switch.example.com/read.only.access:11
+  The program can output in either bits (by default) or bytes (using
+  --use-bytes) and will convert all values into human-readable format by
+  default (i.e. Kb, Mb, Gb...), unless forced to use Mb for all output with 
+  --use-mega.
 
-  would check the 11th interface on switch.example.com using the 'read.only.access' community over
-  the snmpv1 protocol. Using
-
-    check_bandwidth3 --interface v2://switch.example.com/read.only.access:11,12
-
-  you could check the 11th AND 12th interfaces on switch.example.com, again, over the 
-  'read.only.access' community, but this time using the snmpv2c protocol, allowing support for
-  64-bit counters! If both ports were receiving data at 1Mbps at the same time, the script would
-  report an overall usage of 2Mbps. But, with:
-
-    check_bandwidth3 \
-      --interface v2://switch_a.example.com/switch.ro:3 \
-      --interface v3://user:pa55@switch_b.example.com/5,6
-
-  you can check the 3rd interface on switch_a using the snmpv2c protocol (on the 'switch.ro'
-  community) AND both the 5th and 6th interfaces on switch_b, using the snmpv3 protocol with a
-  username and password this time. If switch_a was reporting 5Mbps on interface 3 of switch_a and
-  1Mbps on both 5 and 6 of switch_b, the script would report 7Mbps.
-
-  Cache storage is still available (with monitoring of data time-out for 32-bit counters), while
-  --on-the-fly can be used to ignore cached (both reading and saving), and --pause is available to
-  control the delay between checks.
-
-  The program can output in either bits (by default) or bytes (using --use-bytes) and will convert
-  all values into human-readable format by default (i.e. Kb, Mb, Gb...), unless forced to use Mb
-  for all output with --use-mega.
-
-  Finally, warning & critical status reports can be set independently for each direction (which can
-  be reversed with --reverse, to change the perspective of the output, e.g. reporting it as coming
-  from the server, rather coming into the switch), as well as being calculated as a percentage of
-  available bandwidth or as an absolute value (by specifying a suffix, such as 10M for 10-Megabits,
-  or 10-Megabytes if --use-bytes specified).
-
-  Any and all feedback across all versions is most welcome!
+  Finally, warning & critical status reports can be set independently for each 
+  direction, as well as calculated as a percentage of available bandwidth or 
+  absolute (by specifying a suffix, such as 10M for 10 megabit, or 10 megabyte 
+  if --use-bytes specified).
 
   Note: Nagios is a registered trademark of Ethan Galstad. 
 
@@ -69,142 +37,92 @@ want to monitor their overall usage.
 
   To use this plugin you should have installed:
     1. Nagios(r) (http://www.nagios.org)
-       This plugin was successfully tested with v2.8, and although should work with other versions,
-       is untested on all others (feedback welcomed).
+       This plugin was successfully tested with v2.8, and although should work
+       with other versions, is untested on all others (feedback welcomed).
 
     2. Perl & Net::SNMP Module
-       Was tested with Perl 5.8.8 and Net::SNMP 5.2.0 as well as Perl 5.8.5 and Net::SNMP 5.1.2
-       (again, feedback welcomed).
+       Was tested with Perl 5.8.8 and Net::SNMP 5.2.0 as well as Perl 5.8.5 and
+       Net::SNMP 5.1.2 (again, feedback welcomed).
 
     3. Read-only access to SNMP on the device(s) you want to question
 
-  Plugin has been successfully tested on Gentoo Linux and CentOS4 servers, and should work on all
-  distributions provided the above three criteria match.
+  Plugin has been successfully tested on Gentoo Linux and CentOS4 servers, and
+  should work on all distributions provided the above three critera match.
 
 
 3. Quick install
 
-  Please follow these steps to install check_bandwidth3 (it's pretty easy really - unpack, move and
-  configure!)
+  Please follow these steps to install check_bandwidth (it's pretty easy
+  really - unpack, move and configure!)
 
-    1. Unpack package into a temporary directory. (eg: /usr/tmp) and copy the check_bandwidth3
-       script into your plugins directory
+    1. Unpack package into a temporary directory. (eg: /usr/tmp) and copy
+       the check_bandwidth script into your plugins directory
          (e.g. /usr/nagios/libexec)
 
-    2. By default, check_bandwidth3 will store all cache files under the directory /tmp/.traffic.
-       If you want to change this, please edit the file and change the $_storage variable towards
-       the top, or use --save command-line option.
+    2. By default, check_bandwidth will store all cache files under the
+       directory /tmp/.traffic. If you want to change this, please edit the
+       file and change the $_storage variable towards the top.
 
-    3. Make sure check_bandwidth3 can create and/or write to the $_storage directory.
+    3. Make sure check_bandwidth can create and/or write to the $_storage
+       directory.
 
-    4. Configure Nagios(r) to use the plugin with the command-line attributes that you require
-       (see './check_bandwidth3 --help') for full details on all available options.
+    4. Configure Nagios(r) to use the plugin with the command-line attributes
+       that you require (see './check_bandwidth --help') for full details on
+       all available options.
 
     5. Reload Nagios daemon.
 
 4. Known Bugs & TODOs
 
-  Not much at the moment - I've re-written it (again!) to handle any previous issues.
+    - The check-up function doesn't work at the moment as Net::SNMP resolves
+      the statement 'INTEGER: down(2)' to 1, and 'INTEGER: up(1)' to 1 as well,
+      so there's no way right now to check whether the interface is up or down.
 
-5. Notes
+    - The code used to determin if a cached file is out-of-date can become
+      stale very quickly on fast ports (such as Gigabit ports), and in theory
+      the port can cycle the counter after only a few seconds. Need to look
+      into that.
 
-  The plugin works well for me (at least the 1.x series - haven't yet tried the 3.x series in
-  production), however both have been tested and should work fine.
-  
-  I am always open to feedback, bug reports, etc. from users (may of which have been incorporated
-  into the program over various revisions - your comments do matter).
+    - As part of the above, try and update the code that works out the cycle
+      value to be more dynamic - try and get the size of the counter (i.e. if
+      it's Counter32 or Counter64) from the device and calculate it that way.
 
-  Please feel free to drop me an e-mail on jonathan (at) jabwebsolutions.co.uk.
+    - Performing more analysis on the returned data from the device to work out
+      if it's going to be worth caching, rather than attempting to cache and
+      then process later (possible issue with devices not returning correct
+      interface speed value).
 
-  I'm would also appreciate feedback for 3.0.0rc1 from anybody that uses it, especially those with
-  devices that support 64-bit counters and people looking to monitor multiple ports. Let me know how
-  you get along (good and bad)!
+    - Improve checking of interface numbering as checking against ifNumber no
+      longer works correctly (corrected in 1.0.4).
+
+4. Notes
+
+  This is the first release of this plugin, and while I have tested it
+  successfully on my system, if you do some accross any unknown bugs, please
+  feel free to drop me an e-mail on jonathan (at) jabwebsolutions.co.uk.
 
 5. Changelog
 
   1.0.0 (23.04.2007)
-   - Initial Release
+   - Inital Release
 
   1.0.1 (19.05.2007)
-   - Corrected error in checking of cached data where a variable was used that had not yet been
-     created (referenced $recount not $count).
+   - Corrected error in checking of cached data where a variable was used that
+     had not yet been created (referenced $recount not $count).
    - Made changes to --help message
 
   1.0.2 (14.11.2007)
    - Corrected reported error with $ext not being defined before it was used
 
   1.0.3 (19.12.2007)
-   - Corrected another error in checking of cached data where ifSpeed could be 0 and the program
-     would still attempt division by it, terminating the program.
+   - Corrected another error in checking of cached data where ifSpeed could be
+     0 and the program would still attempt division by it, terminating the
+     program.
 
   1.0.4 (26.01.2008)
-   - Removed check against ifNumber of interfaces as shows number of entries and interfaces may not
-     be numbered in order.
+   - Removed check against ifNumber of interfaces as shows number of entries
+     and interfaces may not be numbered in order.
 
-  1.1.0 (27.01.2008)
-   - Altered code for locating storage to support Win32 platforms as well (will now use either
-     '/tmp/.traffic' or 'c:\Windows\Temp\traffic' by default).
-   - Added --save to allow you to define your own location to store the default storage location
-     (still uses currently location logic, with sub-directories based on hostnames).
-   - Changed text for --warning to more specifically explain the logic behind the %age/relative
-     logic for --warning and --critical.
-   - Also added support for straight bits/bytes with 'B' option to --warning and --critical logic.
-   - Rewrote Performance Data return to be PnP compatible, with separate entries for both in and
-     out streams.
-   - Corrected error in short usage description (specified --bytes when it's actually --use-bytes).
-   - Added support for changing the SNMP agent port
-   - Removed support for --check-up in this version as it currently doesn't work (is available, and
-     should work, in the 2.x series)
-   - Improved checking for the --interface option
-   - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined originally, so was
-     set to 'b' as a default. However, this outputed 'bbps' instead of 'bps', so it's now been
-     changed to a blank value and should work as intended now!
-
-  1.1.1 (28.01.2008)
-   - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined originally, so was
-     set to 'b' as a default. However, this outputed 'bbps' instead of 'bps', so it's now been
-     changed to a blank value and should work as intended now!
-
-  1.1.2 (26.03.2008)
-   - Fixed bug in PnP settings where the values were the wrong way round.
-
-  2.0.0rc1 (28.01.2008)
-   - Rebuilt the code to work on Net::SNMP::Interfaces to provide easier access to parts of the
-     interface that I had problems working with in the past.
-   - Added support for --check-up again
-   - Added --down-warning option to set --check-up to return a WARNING when down rather than
-     CRITICAL.
-   - As part of the update, it should now support 64-bit counters and adjust accordingly. However,
-     this has not been tested (don't have devices which support 64-bit counters, so YMMV and
-     feedback appreciated).
-
-  2.0.0rc2 (26.03.2008)
-   - Fixed bug in PnP settings where the values were the wrong way round.
-   - Fixed error in function naming after change to new system.
-    
-  3.0.0rc1 (11.10.2008)
-   - Another rebuild, returing the code more to the 1.x.x style, making no use of the
-     Net::SNMP::Interfaces libraries (just the Net::SNMP code itself) which will help to speed-up
-     the querying and generall processing while continuing to support 64-bit counters, etc. This
-     should make it a lot quicker that the 2.x.x series
-   - Support multiple-interface checking during the same run, both across the same device and
-     multiple devices checking via a new command-line calling sequence, which will aggrigrate the
-     bandwidth from all interfaces requested.
-   - Support for v1, v2c and v3 connections, with support for usernames/passwords over the v3
-     protocol (with difference devices supporting different versions and access information during
-     the same runtime).
-   - Support for different versions of SNMP with additional username and passwords (which can be
-     specified by files rather than on the command line).
-   - Can check if interfaces are up or down, and using the multiple interfaces support as well, you
-     can get the script to tell you when any one interface is down, or when no interfaces selected
-     are up (which is the default option, although checking overall is disabled by default). Useful
-     if you have backup switches, etc. and don't want to trigger if there's a problem with one
-     switch and the interface on another is fine.
-     
-  3.0.0rc2 (11.10.2008)
-   - Corrected small error with cycle value for the 64-bit counters, allowing it to report a wrong
-     value when a 64-bit counter cycles back to zero.
-     
 --
 Jonathan Wright (Technical Director)
 JAB Web Solutions Limited
