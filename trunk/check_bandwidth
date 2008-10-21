@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 # --------------------------------------------------------------------------------------------------
-# check_bandwidth3 3.0.0rc1
+# check_bandwidth3 3.0.0rc2
 #    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
 #    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
 # --------------------------------------------------------------------------------------------------
@@ -72,8 +72,8 @@ our ($_active) = 0;
 
 # calculate the point at which the counter will cycle (based on 32-bit counter): if the interface
 #  supports 64-bit, it's unlikely to time out (will last for about 15 years on a 40Gbps port)
-$_cycle32 = 4294967296;
-$_cycle64 = $_cycle32; #$_cycle64 = ((2<<63)*2);
+$_cycle32 = ((2<<31)*2);
+$_cycle64 = ((2<<63)*2);
 
 # --------------------------------------------------------------------------------------------------
 # start the program by processing the command-line options, but first create a variable to hold the
@@ -535,7 +535,7 @@ sub __usage {
   my $full = (shift == 1 ? 1 : 0);
 
   # output about and usage (depending on $full above)
-  print "check_bandwidth3 (v3.0.0rc1)\n Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
+  print "check_bandwidth3 (v3.0.0rc2)\n Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
     "Poll (via SNMP) one or more network ports (on one or more network devics)\n".
     " and calculate bandwidth usage across all the ports\n\n"
     if $full;
