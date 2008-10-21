@@ -136,9 +136,22 @@ check_bandwidth
    - Removed support for --check-up in this version as it currently doesn't work
      (is available, and should work, in the 2.x series)
    - Improved checking for the --interface option
+   - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined
+     originally, so was set to 'b' as a default. However, this outputed 'bbps'
+     instead of 'bps', so it's now been changed to a blank value and should work
+     as intended now!
+
+  1.1.1 (28.01.2008)
+   - Corrected error introduced by the fix in 1.0.2, where $ext wasn't defined
+     originally, so was set to 'b' as a default. However, this outputed 'bbps'
+     instead of 'bps', so it's now been changed to a blank value and should work
+     as intended now!
+
+  1.1.2 (26.03.2008)
+    - Fixed bug in PnP settings where the values were the wrong way round.
 
   2.0.0rc1 (28.01.2008)
-   * Rebuilt the code to work on Net::SNMP::Interfaces to provide easier access
+   - Rebuilt the code to work on Net::SNMP::Interfaces to provide easier access
      to parts of the interface that I had problems working with in the past.
    - Added support for --check-up again
    - Added --down-warning option to set --check-up to return a WARNING when down
@@ -146,6 +159,10 @@ check_bandwidth
    - As part of the update, it should now support 64-bit counters and adjust
      accordingly. However, this has not been tested (don't have devices which
      support 64-bit counters, so YMMV and feedback appreciated).
+
+  2.0.0rc2 (26.03.2008)
+    - Fixed bug in PnP settings where the values were the wrong way round.
+    - Fixed error in function naming after change to new system.
 
 --
 Jonathan Wright (Technical Director)
