@@ -112,11 +112,7 @@ want to monitor their overall usage.
   - Look into more detailed storage of per-port data and then add additional ports to PnP infomation
     return, allowing graphing on not only the total in/out, but also of each individual port as
     well.
-  - More details manual on different configuration types.
-  - Source out the calculation code for tx/rx on the count/recount to a dedicated function.
-  - Source out code for the TX/RX check for 32- or 64-bit counter result.
-  - __convert_limit multiplication based on position in array (converted from string?)?
-  - Split out connection information for v1/v2 or v3 into common array and add differences?
+  - More detailed manual on different configuration types.
   - Add option to trigger a warning (or skip?) when the SNMP agent doesn't respond (rather than a
     CRITICAL message) - may be worth while removing some of the code, or updating it with a command
     like --down-warning and checking if only one device is being triggered - should follow with the
@@ -229,6 +225,10 @@ want to monitor their overall usage.
      with --on-the-fly enabled and a --pause of 30 seconds, the rc1/rc2 versions would take around
      90 seconds, where as this would only take a 30 second pause, regardless on the number of
      interfaces.
+   - Added support for changing the authentication scheme by adding 'sha' and 'md5' after 'v3' on
+     the --interface syntax, so you can use v3:// (which is md5 by default), v3sha:// or v3md5:// to
+     connect to the device.
+   - Fixed that --check-up was always run, regardless of option
      
 --
 Jonathan Wright (Technical Director)
