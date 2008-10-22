@@ -1,4 +1,5 @@
 #summary About check-bandwidth
+#labels Phase-Design,Featured
 
 = Introduction =
 
