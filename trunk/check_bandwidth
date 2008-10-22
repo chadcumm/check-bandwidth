@@ -330,7 +330,7 @@ if ($_options{'on-the-fly'}) {
 }
 
 # now we've processed every device and read every interface, check $_active
-__down('No interface active interface has been found') unless ($_active);
+__down('No interface active interface has been found') if ($_options{'check-up'} && !$_active);
 
 # if --reverse is enabled, swap tx and rx;
 ($bandwidth{'tx'}, $bandwidth{'rx'}) = ($bandwidth{'rx'}, $bandwidth{'tx'})
