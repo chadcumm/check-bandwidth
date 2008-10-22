@@ -9,7 +9,7 @@
 
 This document will cover what each argument means, and how you can use it.
 
-== --interface ==
+== --interface (description) ==
 
 This is the most important argument on the command-line, and the one without which you cannot run the program. `--interface` allows you to add a device (through an SNMP agent) to be checked, with each device supporting a range of ports. It allows the following syntax:
 
@@ -30,5 +30,12 @@ The following are examples on the syntax:
   * `check_bandwidth3 --interface v2://switch.example.com/public:11,12` changes so that we're not connecting over `snmpv2c` using the `public` community (which will allow us to check for 64-bit counters, if available, while also checking two interfaces: `11` and `12` at the same time - the traffic from both of them will be aggregated, so if they both report `1.75Mbps`, `check_bandwidth` will report back `3.5Mbps`. This uses many of the defaults, and can also be called as just `--interface switch.example.com/11,12`.
   * `check_bandwidth3 --interface v2://sw2.example.com/switch.ro:3 --interface v3://user:pa55@sw1.example.com/5,6` begins to show the power of the program. This command is for a device with three network ports - with one connected to `sw2` (this is the backup switch) and two connected to `sw1` (the master switch). However, the real power is that they both connected differently (one supports `snmpv3` with the other can only allow `snmpv2c`). The will all get checked and if ports `5` and `6` on `sw1.example.com` report `2Mpbs` each, while port `3` on `sw2.example.com` reports just `0.25Mbps` the output by `check_bandwidth` will how `4.25Mbps`.
 
+== --timeout (seconds) ==
 
+Controls how long (in seconds) that the program should wait before declaring an interface as non-responsive and failing. The returning of time-out errors are controlled based on the number of interfaces passed, and options such as `--check-up` and `--down-warning`.
 
+== --pause (seconds) ==
+
+The `--pause` option sets how long the program should wait before re-testing an interface we it either cannot find a cache file containing historical data (or that historical data has timed out), or if `--on-the-fly` has been passed, in which case the program will not attempt to retrieved cached data and simple re-run the tests after `--pause` seconds (the default is `10`).
+
+Note that the time-out of historical data from the cache files is controlled by the speed of the port and nothing else - this is done to prevent the risk of a port performing a complete cycle between program runs and therefore reporting an inaccurate bandwidth usage.
