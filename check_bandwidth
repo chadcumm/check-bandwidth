@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 
 # --------------------------------------------------------------------------------------------------
-# check_bandwidth3 3.0.0
+# check_bandwidth 3.0.0
 #    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
 #    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
+#    ~ http://code.google.com/p/check-bandwidth
 # --------------------------------------------------------------------------------------------------
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU
 # General Public License as published by the Free Software Foundation; either version 2 of the
@@ -83,21 +84,22 @@ our (@devices);
 
 while (my $arg = shift) {
   # test against known arguments, and assign variables based on them
-  if    ($arg =~ /^-(i|-interface)$/)      { &add_device(shift); }
-  elsif ($arg =~ /^-(t|-timeout)$/)        { $_options{'timeout'}        = shift;     }
-  elsif ($arg =~ /^-(p|-pause)$/)          { $_options{'pause'}          = shift;     }
-  elsif ($arg =~ /^-(o|-override)$/)       { $_options{'override'}       = shift;     }
-  elsif ($arg =~ /^-(f|-on-the-fly)$/)     { $_options{'on-the-fly'}     = 1;         }
-  elsif ($arg =~ /^-(u|-check-up)$/)       { $_options{'check-up'}       = 1;         }
-  elsif ($arg =~ /^-(d|-down-warning)$/)   { $_options{'down-warning'}   = 1;         }
-  elsif ($arg =~ /^-(a|-all-up)$/)         { $_options{'all-up'}         = 1;         }
-  elsif ($arg =~ /^-(w|-warning)$/)        { $_options{'warning'}        = uc(shift); }
-  elsif ($arg =~ /^-(c|-critical)$/)       { $_options{'critical'}       = uc(shift); }
-  elsif ($arg =~ /^-(b|-use-bytes)$/)      { $_options{'use-bytes'}      = 1;         }
-  elsif ($arg =~ /^-(m|-use-mega)$/)       { $_options{'use-mega'}       = 1;         }
-  elsif ($arg =~ /^-(r|-reverse)$/)        { $_options{'reverse'}        = 1;         }
-  elsif ($arg =~ /^-(s|-save)$/)           { $_options{'save'}           = shift;     }
-  elsif ($arg =~ /^-(h|-help)$/)           { __usage(1); }
+  if    ($arg =~ /^-(i|-interface)$/)       { &add_device(shift); }
+  elsif ($arg =~ /^-(t|-timeout)$/)         { $_options{'timeout'}         = shift;     }
+  elsif ($arg =~ /^-(p|-pause)$/)           { $_options{'pause'}           = shift;     }
+  elsif ($arg =~ /^-(o|-override)$/)        { $_options{'override'}        = shift;     }
+  elsif ($arg =~ /^-(f|-on-the-fly)$/)      { $_options{'on-the-fly'}      = 1;         }
+  elsif ($arg =~ /^-(l|-fail-no-connect)$/) { $_options{'fail-no-connect'} = 1;         }
+  elsif ($arg =~ /^-(u|-check-up)$/)        { $_options{'check-up'}        = 1;         }
+  elsif ($arg =~ /^-(d|-down-warning)$/)    { $_options{'down-warning'}    = 1;         }
+  elsif ($arg =~ /^-(a|-all-up)$/)          { $_options{'all-up'}          = 1;         }
+  elsif ($arg =~ /^-(w|-warning)$/)         { $_options{'warning'}         = uc(shift); }
+  elsif ($arg =~ /^-(c|-critical)$/)        { $_options{'critical'}        = uc(shift); }
+  elsif ($arg =~ /^-(b|-use-bytes)$/)       { $_options{'use-bytes'}       = 1;         }
+  elsif ($arg =~ /^-(m|-use-mega)$/)        { $_options{'use-mega'}        = 1;         }
+  elsif ($arg =~ /^-(r|-reverse)$/)         { $_options{'reverse'}         = 1;         }
+  elsif ($arg =~ /^-(s|-save)$/)            { $_options{'save'}            = shift;     }
+  elsif ($arg =~ /^-(h|-help)$/)            { __usage(1); }
   else {
     # if argument is unknown, then output error and exit
     __issue('Unknown option: '.$arg);
@@ -149,8 +151,9 @@ foreach my $device (@devices) {
     ($device->{'session'}, $error) = Net::SNMP->session(
       -hostname      => $device->{'hostname'},
       -version       => $device->{'version'},
+     #-community     => $device->{'community'},
       -username      => $device->{'username'},
-      -authpassword  => $device->{'password'}.
+      -authpassword  => $device->{'password'},
       -port          => $device->{'port'},
       -timeout       => $_options{'timeout'}
     );
@@ -164,6 +167,12 @@ foreach my $device (@devices) {
       -timeout       => $_options{'timeout'}
     );
   }
+
+  # TODO: Additional code to skip devices we cannot connect to when we have more than one available
+  #       and how to react based on passed options and program defaults (follow similar processes
+  #       as when we cannot talk to a port, using --check-up, etc.)
+  #
+  #       Don't forget about fetch_interfaces as well.
 
   # if we cannot get the sysDesc OID, assume that the attempt has failed
   __critical('SNMP connection failed on '.$device->{'hostname'}.' with error: '.$error)
@@ -460,7 +469,8 @@ sub fetch_interfaces {
 
   # run the SNMP query, and throw a CRITICAL error message if we can't get
   #  any data back from the device
-  __critical('Count not communitate with SNMP agent: '.$device->{'session'}->error())
+  # TODO: Only report issue if required
+  __critical('Could not communitate with SNMP agent: '.$device->{'session'}->error())
     unless (defined($request = $device->{'session'}->get_request(-varbindlist=>[@list])));
 
   # run through each of the  interfaces and process the returned details from the SNMP agent
@@ -558,12 +568,13 @@ sub __usage {
   my $full = (shift == 1 ? 1 : 0);
 
   # output about and usage (depending on $full above)
-  print "check_bandwidth3 (v3.0.0)\n".
-    " Copyright 2008 Jonathan Wright <jonathan\@jabwebsolutions.co.uk>\n\n".
+  print "check_bandwidth 3.0.0                       (c) 2007-2008 Jonathan Wright\n\n".
     "Poll (via SNMP) one or more network ports (on one or more network devics)\n".
-    " and calculate bandwidth usage across all the ports\n\n"
+    " and calculate the aggrigrated bandwidth usage across all the ports\n\n".
+    "  e: jonathan\@jabwebsolutions.co.uk\n".
+    "  w: http://code.google.com/p/check-bandwidth\n\n"
     if $full;
-  print "Usage: check_bandwidth3 --interface description\n".
+  print "Usage: check_bandwidth --interface description\n".
     "         [--timeout seconds] [--pause seconds] [--on-the-fly]\n".
     "         [--override bits/sec] [--warning value] [--critical value]\n".
     "         [--check-up [--down-warning]] [--use-bytes] [--use-mega]\n".
@@ -621,7 +632,11 @@ sub __usage {
     "    interface, not the interface itself (this will only affect the values\n".
     "    retrived from the interface, not the --warning or --critical values).\n\n".
     " -s, --save                        (default '".$_options{'save'}."')\n".
-    "    Change the location where the cache files are saved.\n\n"
+    "    Change the location where the cache files are saved.\n\n".
+    "If you have any issues, questions, or would like to report bugs, or suggest\n".
+    "features to help improve check_bandwidth, please visit the new website at:\n\n".
+    "  http://code.google.com/p/check-bandwidth\n\n".
+    "All feedback and suggestions most welcome!\n\n"
    if $full;
 
   exit($_status{'UNKNOWN'});

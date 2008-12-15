@@ -1,7 +1,7 @@
 check_bandwidth
    ~ Nagios(r) SNMP Network Traffic Monitor Plugin
    ~ Copyright 2008, Jonathan Wright <jonathan (at) jabwebsolutions.co.uk>
-
+   ~ http://code.google.com/p/check-bandwidth
 -- ----------------------------------------------------------------------------
 
 Poll (via SNMP) one or more interfaces on one or more devices (with each device supporting a
@@ -104,19 +104,19 @@ want to monitor their overall usage.
 
 4. Known Bugs & TODOs
 
-  - Look into seeing if snmpv3 doesn't use communities, in which case may need to further adjust the
-    regular expression for the --interface syntax checking so that v3 entries cannot enter a
-    community statement. (However, at the moment, if a community is given for a v3:// entry, it's
-    ignored by the script and not passed to the SNMP agent.)
-  - POD encoding of comments and manuals into the file?
+  - More detailed manual on different configuration types -- for the wiki on googlecode.com.
+  - At the moment, v3:// interfaces will take a community as an argument, but will not use it
+    (Net::SNMP doesn't allow, or so it seams at the moment, communities with a v3 connection). Look
+    into updating the regular expression to distinguish between v1/v2 and v3 connection syntax with
+    this extra fact.
   - Look into more detailed storage of per-port data and then add additional ports to PnP infomation
     return, allowing graphing on not only the total in/out, but also of each individual port as
     well.
-  - More detailed manual on different configuration types.
   - Add option to trigger a warning (or skip?) when the SNMP agent doesn't respond (rather than a
     CRITICAL message) - may be worth while removing some of the code, or updating it with a command
     like --down-warning and checking if only one device is being triggered - should follow with the
     checks for multiple ports and whether or not we're failing one or more more ports.
+  - Create process flowchart?
 
 5. Notes
 
